@@ -247,7 +247,7 @@ func (r *RDB) Dequeue(qnames ...string) (msg *base.TaskMessage, leaseExpirationT
 			leaseExpirationTime.Unix(),
 			base.TaskKeyPrefix(qname),
 		}
-		res, err := dequeueCmd.Run(context.Background(), r.client, keys, argv...).Result()
+		res, err := dequeueCmd.Eval(context.Background(), r.client, keys, argv...).Result()
 		if err == redis.Nil {
 			continue
 		} else if err != nil {
@@ -953,7 +953,7 @@ func (r *RDB) forward(delayedKey, pendingKey, taskKeyPrefix, groupKeyPrefix stri
 		now.UnixNano(),
 		groupKeyPrefix,
 	}
-	res, err := forwardCmd.Run(context.Background(), r.client, keys, argv...).Result()
+	res, err := forwardCmd.Eval(context.Background(), r.client, keys, argv...).Result()
 	if err != nil {
 		return 0, errors.E(errors.Internal, fmt.Sprintf("redis eval error: %v", err))
 	}
@@ -1144,7 +1144,7 @@ func (r *RDB) ReadAggregationSet(qname, gname, setID string) ([]*base.TaskMessag
 	var op errors.Op = "RDB.ReadAggregationSet"
 	ctx := context.Background()
 	aggSetKey := base.AggregationSetKey(qname, gname, setID)
-	res, err := readAggregationSetCmd.Run(ctx, r.client,
+	res, err := readAggregationSetCmd.Eval(ctx, r.client,
 		[]string{aggSetKey}, base.TaskKeyPrefix(qname)).Result()
 	if err != nil {
 		return nil, time.Time{}, errors.E(op, errors.Unknown, fmt.Sprintf("redis eval error: %v", err))
@@ -1265,7 +1265,7 @@ func (r *RDB) deleteExpiredCompletedTasks(qname string, batchSize int) (int64, e
 		base.TaskKeyPrefix(qname),
 		batchSize,
 	}
-	res, err := deleteExpiredCompletedTasksCmd.Run(context.Background(), r.client, keys, argv...).Result()
+	res, err := deleteExpiredCompletedTasksCmd.Eval(context.Background(), r.client, keys, argv...).Result()
 	if err != nil {
 		return 0, errors.E(op, errors.Internal, fmt.Sprintf("redis eval error: %v", err))
 	}
@@ -1294,7 +1294,7 @@ func (r *RDB) ListLeaseExpired(cutoff time.Time, qnames ...string) ([]*base.Task
 	var op errors.Op = "rdb.ListLeaseExpired"
 	var msgs []*base.TaskMessage
 	for _, qname := range qnames {
-		res, err := listLeaseExpiredCmd.Run(context.Background(), r.client,
+		res, err := listLeaseExpiredCmd.Eval(context.Background(), r.client,
 			[]string{base.LeaseKey(qname)},
 			cutoff.Unix(), base.TaskKeyPrefix(qname)).Result()
 		if err != nil {

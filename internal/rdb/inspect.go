@@ -165,7 +165,7 @@ func (r *RDB) CurrentStats(qname string) (*Stats, error) {
 		base.TaskKeyPrefix(qname),
 		base.GroupKeyPrefix(qname),
 	}
-	res, err := currentStatsCmd.Run(context.Background(), r.client, keys, argv...).Result()
+	res, err := currentStatsCmd.Eval(context.Background(), r.client, keys, argv...).Result()
 	if err != nil {
 		return nil, errors.E(op, errors.Unknown, err)
 	}
@@ -337,7 +337,7 @@ func (r *RDB) memoryUsage(qname string) (int64, error) {
 		groupSampleSize,
 		base.GroupKeyPrefix(qname),
 	}
-	res, err := memoryUsageCmd.Run(context.Background(), r.client, keys, argv...).Result()
+	res, err := memoryUsageCmd.Eval(context.Background(), r.client, keys, argv...).Result()
 	if err != nil {
 		return 0, errors.E(op, errors.Unknown, fmt.Sprintf("redis eval error: %v", err))
 	}
@@ -382,7 +382,7 @@ func (r *RDB) HistoricalStats(qname string, n int) ([]*DailyStats, error) {
 		keys = append(keys, base.ProcessedKey(qname, ts))
 		keys = append(keys, base.FailedKey(qname, ts))
 	}
-	res, err := historicalStatsCmd.Run(context.Background(), r.client, keys).Result()
+	res, err := historicalStatsCmd.Eval(context.Background(), r.client, keys).Result()
 	if err != nil {
 		return nil, errors.E(op, errors.Unknown, fmt.Sprintf("redis eval error: %v", err))
 	}
@@ -493,7 +493,7 @@ func (r *RDB) GetTaskInfo(qname, id string) (*base.TaskInfo, error) {
 		r.clock.Now().Unix(),
 		base.QueueKeyPrefix(qname),
 	}
-	res, err := getTaskInfoCmd.Run(context.Background(), r.client, keys, argv...).Result()
+	res, err := getTaskInfoCmd.Eval(context.Background(), r.client, keys, argv...).Result()
 	if err != nil {
 		if err.Error() == "NOT FOUND" {
 			return nil, errors.E(op, errors.NotFound, &errors.TaskNotFoundError{Queue: qname, ID: id})
@@ -579,7 +579,7 @@ func (r *RDB) GroupStats(qname string) ([]*GroupStat, error) {
 	var op errors.Op = "RDB.GroupStats"
 	keys := []string{base.AllGroups(qname)}
 	argv := []interface{}{base.GroupKeyPrefix(qname)}
-	res, err := groupStatsCmd.Run(context.Background(), r.client, keys, argv...).Result()
+	res, err := groupStatsCmd.Eval(context.Background(), r.client, keys, argv...).Result()
 	if err != nil {
 		return nil, errors.E(op, errors.Unknown, err)
 	}
@@ -680,7 +680,7 @@ func (r *RDB) listMessages(qname string, state base.TaskState, pgn Pagination) (
 	// correct range and reverse the list to get the tasks with pagination.
 	stop := -pgn.start() - 1
 	start := -pgn.stop() - 1
-	res, err := listMessagesCmd.Run(context.Background(), r.client,
+	res, err := listMessagesCmd.Eval(context.Background(), r.client,
 		[]string{key}, start, stop, base.TaskKeyPrefix(qname)).Result()
 	if err != nil {
 		return nil, errors.E(errors.Unknown, err)
@@ -712,7 +712,6 @@ func (r *RDB) listMessages(qname string, state base.TaskState, pgn Pagination) (
 	}
 	reverse(infos)
 	return infos, nil
-
 }
 
 // ListScheduled returns all tasks from the given queue that are scheduled
@@ -832,7 +831,7 @@ return data
 // listZSetEntries returns a list of message and score pairs in Redis sorted-set
 // with the given key.
 func (r *RDB) listZSetEntries(qname string, state base.TaskState, key string, pgn Pagination) ([]*base.TaskInfo, error) {
-	res, err := listZSetEntriesCmd.Run(context.Background(), r.client, []string{key},
+	res, err := listZSetEntriesCmd.Eval(context.Background(), r.client, []string{key},
 		pgn.start(), pgn.stop(), base.TaskKeyPrefix(qname)).Result()
 	if err != nil {
 		return nil, errors.E(errors.Unknown, err)
@@ -962,7 +961,7 @@ func (r *RDB) RunAllAggregatingTasks(qname, gname string) (int64, error) {
 		base.TaskKeyPrefix(qname),
 		gname,
 	}
-	res, err := runAllAggregatingCmd.Run(context.Background(), r.client, keys, argv...).Result()
+	res, err := runAllAggregatingCmd.Eval(context.Background(), r.client, keys, argv...).Result()
 	if err != nil {
 		return 0, errors.E(op, errors.Internal, err)
 	}
@@ -1040,7 +1039,7 @@ func (r *RDB) RunTask(qname, id string) error {
 		base.QueueKeyPrefix(qname),
 		base.GroupKeyPrefix(qname),
 	}
-	res, err := runTaskCmd.Run(context.Background(), r.client, keys, argv...).Result()
+	res, err := runTaskCmd.Eval(context.Background(), r.client, keys, argv...).Result()
 	if err != nil {
 		return errors.E(op, errors.Unknown, err)
 	}
@@ -1093,7 +1092,7 @@ func (r *RDB) runAll(zset, qname string) (int64, error) {
 	argv := []interface{}{
 		base.TaskKeyPrefix(qname),
 	}
-	res, err := runAllCmd.Run(context.Background(), r.client, keys, argv...).Result()
+	res, err := runAllCmd.Eval(context.Background(), r.client, keys, argv...).Result()
 	if err != nil {
 		return 0, err
 	}
@@ -1186,7 +1185,7 @@ func (r *RDB) ArchiveAllAggregatingTasks(qname, gname string) (int64, error) {
 		base.TaskKeyPrefix(qname),
 		gname,
 	}
-	res, err := archiveAllAggregatingCmd.Run(context.Background(), r.client, keys, argv...).Result()
+	res, err := archiveAllAggregatingCmd.Eval(context.Background(), r.client, keys, argv...).Result()
 	if err != nil {
 		return 0, errors.E(op, errors.Internal, err)
 	}
@@ -1241,7 +1240,7 @@ func (r *RDB) ArchiveAllPendingTasks(qname string) (int64, error) {
 		maxArchiveSize,
 		base.TaskKeyPrefix(qname),
 	}
-	res, err := archiveAllPendingCmd.Run(context.Background(), r.client, keys, argv...).Result()
+	res, err := archiveAllPendingCmd.Eval(context.Background(), r.client, keys, argv...).Result()
 	if err != nil {
 		return 0, errors.E(op, errors.Internal, err)
 	}
@@ -1333,7 +1332,7 @@ func (r *RDB) ArchiveTask(qname, id string) error {
 		base.QueueKeyPrefix(qname),
 		base.GroupKeyPrefix(qname),
 	}
-	res, err := archiveTaskCmd.Run(context.Background(), r.client, keys, argv...).Result()
+	res, err := archiveTaskCmd.Eval(context.Background(), r.client, keys, argv...).Result()
 	if err != nil {
 		return errors.E(op, errors.Unknown, err)
 	}
@@ -1398,7 +1397,7 @@ func (r *RDB) archiveAll(src, dst, qname string) (int64, error) {
 		base.TaskKeyPrefix(qname),
 		qname,
 	}
-	res, err := archiveAllCmd.Run(context.Background(), r.client, keys, argv...).Result()
+	res, err := archiveAllCmd.Eval(context.Background(), r.client, keys, argv...).Result()
 	if err != nil {
 		return 0, err
 	}
@@ -1476,7 +1475,7 @@ func (r *RDB) DeleteTask(qname, id string) error {
 		base.QueueKeyPrefix(qname),
 		base.GroupKeyPrefix(qname),
 	}
-	res, err := deleteTaskCmd.Run(context.Background(), r.client, keys, argv...).Result()
+	res, err := deleteTaskCmd.Eval(context.Background(), r.client, keys, argv...).Result()
 	if err != nil {
 		return errors.E(op, errors.Unknown, err)
 	}
@@ -1582,7 +1581,7 @@ func (r *RDB) deleteAll(key, qname string) (int64, error) {
 		base.TaskKeyPrefix(qname),
 		qname,
 	}
-	res, err := deleteAllCmd.Run(context.Background(), r.client, []string{key}, argv...).Result()
+	res, err := deleteAllCmd.Eval(context.Background(), r.client, []string{key}, argv...).Result()
 	if err != nil {
 		return 0, err
 	}
@@ -1626,7 +1625,7 @@ func (r *RDB) DeleteAllAggregatingTasks(qname, gname string) (int64, error) {
 		base.TaskKeyPrefix(qname),
 		gname,
 	}
-	res, err := deleteAllAggregatingCmd.Run(context.Background(), r.client, keys, argv...).Result()
+	res, err := deleteAllAggregatingCmd.Eval(context.Background(), r.client, keys, argv...).Result()
 	if err != nil {
 		return 0, errors.E(op, errors.Unknown, err)
 	}
@@ -1667,7 +1666,7 @@ func (r *RDB) DeleteAllPendingTasks(qname string) (int64, error) {
 	argv := []interface{}{
 		base.TaskKeyPrefix(qname),
 	}
-	res, err := deleteAllPendingCmd.Run(context.Background(), r.client, keys, argv...).Result()
+	res, err := deleteAllPendingCmd.Eval(context.Background(), r.client, keys, argv...).Result()
 	if err != nil {
 		return 0, errors.E(op, errors.Unknown, err)
 	}
@@ -1852,7 +1851,7 @@ return keys`)
 // ListServers returns the list of server info.
 func (r *RDB) ListServers() ([]*base.ServerInfo, error) {
 	now := r.clock.Now()
-	res, err := listServerKeysCmd.Run(context.Background(), r.client, []string{base.AllServers}, now.Unix()).Result()
+	res, err := listServerKeysCmd.Eval(context.Background(), r.client, []string{base.AllServers}, now.Unix()).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -1886,7 +1885,7 @@ return keys`)
 func (r *RDB) ListWorkers() ([]*base.WorkerInfo, error) {
 	var op errors.Op = "rdb.ListWorkers"
 	now := r.clock.Now()
-	res, err := listWorkersCmd.Run(context.Background(), r.client, []string{base.AllWorkers}, now.Unix()).Result()
+	res, err := listWorkersCmd.Eval(context.Background(), r.client, []string{base.AllWorkers}, now.Unix()).Result()
 	if err != nil {
 		return nil, errors.E(op, errors.Unknown, err)
 	}
@@ -1921,7 +1920,7 @@ return keys`)
 // ListSchedulerEntries returns the list of scheduler entries.
 func (r *RDB) ListSchedulerEntries() ([]*base.SchedulerEntry, error) {
 	now := r.clock.Now()
-	res, err := listSchedulerKeysCmd.Run(context.Background(), r.client, []string{base.AllSchedulers}, now.Unix()).Result()
+	res, err := listSchedulerKeysCmd.Eval(context.Background(), r.client, []string{base.AllSchedulers}, now.Unix()).Result()
 	if err != nil {
 		return nil, err
 	}

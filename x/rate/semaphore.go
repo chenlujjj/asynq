@@ -76,7 +76,7 @@ func (s *Semaphore) Acquire(ctx context.Context) (bool, error) {
 		return false, fmt.Errorf("provided context is missing task ID value")
 	}
 
-	return acquireCmd.Run(ctx, s.rc,
+	return acquireCmd.Eval(ctx, s.rc,
 		[]string{semaphoreKey(s.scope)},
 		s.maxTokens,
 		time.Now().Unix(),
