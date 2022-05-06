@@ -61,7 +61,7 @@ func (r *RDB) Ping() error {
 }
 
 func (r *RDB) runScript(ctx context.Context, op errors.Op, script *redis.Script, keys []string, args ...interface{}) error {
-	if err := script.Run(ctx, r.client, keys, args...).Err(); err != nil {
+	if err := script.Eval(ctx, r.client, keys, args...).Err(); err != nil {
 		return errors.E(op, errors.Internal, fmt.Sprintf("redis eval error: %v", err))
 	}
 	return nil
@@ -69,7 +69,7 @@ func (r *RDB) runScript(ctx context.Context, op errors.Op, script *redis.Script,
 
 // Runs the given script with keys and args and retuns the script's return value as int64.
 func (r *RDB) runScriptWithErrorCode(ctx context.Context, op errors.Op, script *redis.Script, keys []string, args ...interface{}) (int64, error) {
-	res, err := script.Run(ctx, r.client, keys, args...).Result()
+	res, err := script.Eval(ctx, r.client, keys, args...).Result()
 	if err != nil {
 		return 0, errors.E(op, errors.Unknown, fmt.Sprintf("redis eval error: %v", err))
 	}
